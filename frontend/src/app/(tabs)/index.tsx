@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -570,7 +571,9 @@ export default function NovaScreen() {
       </View>
 
       {empty ? (
-        <View style={styles.hero}>
+        // Tapping the empty background dismisses the keyboard. Chips keep working
+        // because their own Pressable handles the press first.
+        <Pressable style={styles.hero} onPress={() => Keyboard.dismiss()}>
           <NovaMark size={66} />
           <Text style={styles.heroTitle}>What should we get done?</Text>
           <Text style={styles.heroSub}>
@@ -583,12 +586,16 @@ export default function NovaScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </Pressable>
       ) : (
         <ScrollView
           ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={styles.thread}
+          // Tap on the thread dismisses the keyboard; taps on buttons/cards still
+          // register ("handled" keeps the keyboard up only for child-handled taps).
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           onContentSizeChange={scrollToEnd}>
           {messages.map((m) =>
             m.role === 'user' ? (
