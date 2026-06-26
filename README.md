@@ -6,11 +6,30 @@ FastAPI service that calls Claude.
 
 | Part | Stack | Folder |
 |---|---|---|
-| Mobile app | React Native · Expo (SDK 56) · TypeScript · expo-router | [`frontend/`](frontend) |
+| Mobile app | React Native · Expo (SDK 54) · TypeScript · expo-router | [`frontend/`](frontend) |
 | API | Python · FastAPI · SQLAlchemy (async) · SQLite · Claude Opus 4.8 | [`backend/`](backend) |
 | Design | UI mockup that the app is built from | [`design/`](design) |
 
 ## What's implemented
+
+The headline is the **Nova chat**: you manage your tasks by talking in plain
+language, and the backend uses **Claude** (structured outputs) to understand the
+request and reply, while the app shows an action card you confirm with one tap.
+
+Nova chat - drive everything by conversation:
+- **Create** a task from a sentence ("remind me to call the bank tomorrow").
+- **Plan a week or month** - "plan my week" becomes a **multi-task plan spread
+  across the days**, added all at once. Nova asks clarifying questions first, then
+  breaks the goal into concrete per-day tasks.
+- **List / search** ("show my active tasks"), **complete**, **delete**, **edit**
+  ("rename Groceries to Weekly shop"), and **clear all** - each with a confirm card.
+- **Disambiguation + memory** - when several tasks match, Nova asks which one;
+  follow-ups ("yes", "the first one") resolve against the previous card. Recent
+  turns are replayed so context carries within a conversation.
+- **Saved chats** - conversations persist (FastAPI endpoints) and reopen from a
+  side drawer. Replies stream token-by-token over SSE.
+- Falls back to a **local parser/classifier** when no API key is set, so the whole
+  flow runs offline too.
 
 Auth & onboarding (from the design):
 - **Splash** on every launch, **onboarding** (3 slides) shown once
@@ -28,12 +47,6 @@ Bonus:
 - **Search** tasks by title and **filter** by status (All / Active / Completed)
 - **Local storage** of tasks (AsyncStorage cache - instant launch, offline view)
 - **Navigation** between screens (tabs + a task-details modal)
-
-Beyond the spec - the "Nova" concept from the design:
-- A chat where you describe a task in plain words and the **backend uses
-  Claude Opus 4.8** (structured outputs) to draft a `{title, description}`, which
-  you add with one tap. Falls back to a local parser when no API key is set, so
-  everything runs offline too.
 
 ## Run it
 
@@ -62,12 +75,13 @@ Beyond the spec - the "Nova" concept from the design:
 ```
 
 The backend follows a layered **router → service → model** structure; the app keeps
-shared task state in a single context with optimistic updates and an AsyncStorage
-cache. See each folder's README for details and trade-offs.
+shared state in small context providers (tasks, auth, conversations) with optimistic
+updates and an AsyncStorage cache. See each folder's README for details and trade-offs.
 
 ## Tests
 
-- Backend: `cd backend && uv run pytest` (16 passing - task CRUD, search/filter,
-  validation, Nova local parser, and auth: register/login/me/forgot).
+- Backend: `cd backend && uv run pytest` (117 passing - task CRUD, search/filter,
+  validation, Nova intents/local fallback, conversations, and auth:
+  register/login/me/forgot).
 - Frontend: `cd frontend && npx tsc --noEmit` typechecks; `npx expo export
   --platform web` bundles all routes.
