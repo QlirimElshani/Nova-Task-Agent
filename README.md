@@ -7,8 +7,7 @@ FastAPI service that calls Claude.
 | Part | Stack | Folder |
 |---|---|---|
 | Mobile app | React Native · Expo (SDK 54) · TypeScript · expo-router | [`frontend/`](frontend) |
-| API | Python · FastAPI · SQLAlchemy (async) · SQLite · Claude Opus 4.8 | [`backend/`](backend) |
-| Design | UI mockup that the app is built from | [`design/`](design) |
+| API | Python · FastAPI · SQLAlchemy (async) · SQLite · Claude (Sonnet 4.6) | [`backend/`](backend) |
 
 ## What's implemented
 
@@ -31,11 +30,11 @@ Nova chat - drive everything by conversation:
 - Falls back to a **local parser/classifier** when no API key is set, so the whole
   flow runs offline too.
 
-Auth & onboarding (from the design):
+Auth & onboarding:
 - **Splash** on every launch, **onboarding** (3 slides) shown once
 - **Sign up / sign in / forgot password / log out**, backed by real FastAPI
   endpoints (Argon2-hashed passwords, JWT). Session persists across launches.
-- Inline field validation + server-error handling, matching the mockup
+- Inline field validation + server-error handling
 
 Core (from the task spec):
 - Task list screen, add / complete / delete, task details view
@@ -66,11 +65,36 @@ Bonus:
    npx expo start      # press w (web), a (Android), i (iOS), or scan with Expo Go
    ```
 
+### Run it over the internet with ngrok
+
+On the same Wi-Fi the app finds the backend automatically (it derives your dev
+machine's LAN IP). When the device isn't on the same network - a remote tester, a
+phone on cellular, a locked-down work network - expose the **backend** through an
+ngrok tunnel and point the app at that public URL.
+
+1. Start the backend as above (port `8000`).
+2. Tunnel it in another terminal: `ngrok http 8000`. ngrok prints a public HTTPS
+   URL like `https://abc123.ngrok-free.app`.
+3. Start the app pointed at that URL via `EXPO_PUBLIC_API_URL` (it overrides the
+   LAN auto-detection):
+   ```bash
+   EXPO_PUBLIC_API_URL=https://abc123.ngrok-free.app npx expo start
+   ```
+   PowerShell: `$env:EXPO_PUBLIC_API_URL="https://abc123.ngrok-free.app"; npx expo start`
+   Add `--tunnel` if the device also can't reach the Metro bundler over the LAN.
+
+**What to change:** only `EXPO_PUBLIC_API_URL` (the backend's ngrok HTTPS URL, no
+trailing slash, no `/api/v1` suffix) - no code edits. The free plan gives a new URL
+on each restart, so re-set it (or reserve a static domain). The backend's default
+`CORS_ORIGINS=["*"]` already allows the tunnel; SSE/Nova streaming works through it.
+Full details (the ngrok warning page, CORS lockdown) are in
+[frontend/README.md](frontend/README.md#running-with-ngrok-share-over-the-internet).
+
 ## Architecture
 
 ```
 [Expo app]  ⇄  [FastAPI]  ⇄  SQLite
-   fetch        Claude Opus 4.8 (Nova endpoint)
+   fetch        Claude Sonnet 4.6 (Nova endpoint)
                 ZenQuotes (public API, called directly from the app)
 ```
 
